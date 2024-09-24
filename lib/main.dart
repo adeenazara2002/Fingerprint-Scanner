@@ -20,25 +20,6 @@ class FingerprintAuthScreen extends StatefulWidget {
 
 class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
   final LocalAuthentication auth = LocalAuthentication();
-  bool _authenticated = false;
-
-  // Fingerprint Authentication Logic
-  Future<void> _authenticateWithFingerprint() async {
-    try {
-      bool authenticated = await auth.authenticate(
-        localizedReason: 'Scan your fingerprint to authenticate',
-        options: const AuthenticationOptions(
-          useErrorDialogs: true,
-          stickyAuth: true,
-        ),
-      );
-      setState(() {
-        _authenticated = authenticated;
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +29,10 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
         backgroundColor: Colors.black,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {},
+          onPressed: () {
+            // Handle back navigation
+            Navigator.of(context).pop();
+          },
         ),
         elevation: 0,
       ),
@@ -77,34 +61,97 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
               obscureText: true,
             ),
             SizedBox(height: 40),
-            _buildLoginButton(),
-            SizedBox(height: 20),
-            Text(
-              'Forget Password?',
-              style: TextStyle(color: Colors.grey[500]),
-            ),
+            _buildLoginButton(context),
             Spacer(),
+            // Positioning the forget password option at the bottom
             GestureDetector(
-              onTap: _authenticateWithFingerprint,
-              child: Column(
-                children: [
-                  _buildFingerprintIcon(),
-                  SizedBox(height: 10),
-                  Text(
-                    'Fingerprint Authentication',
-                    style: TextStyle(color: Colors.grey[400]),
-                  ),
-                ],
+              onTap: () {
+                // Handle forget password action
+                print("Forget Password tapped");
+              },
+              child: Text(
+                'Forget Password?',
+                style: TextStyle(color: Colors.grey[500]),
               ),
             ),
-            SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
-  // Helper method to build text fields
+  Widget _buildLoginButton(BuildContext context) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      // Container to apply gradient background to the button
+      Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromRGBO(255, 198, 48, 1),
+              Color.fromRGBO(255, 179, 57, 1),
+              Color.fromRGBO(254, 150, 68, 1),
+              Color.fromRGBO(255, 126, 79, 1),
+              Color.fromRGBO(255, 116, 83, 1),
+              Color.fromRGBO(255, 93, 93, 1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30), // Rounded corners
+        ),
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => FingerprintAuthPopupScreen(),
+            ));
+          },
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 110, vertical: 15),
+            backgroundColor: Colors.transparent, // Make background transparent
+            elevation: 0, // Remove elevation for seamless gradient
+          ),
+          child: Text(
+            'Login',
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
+        ),
+      ),
+      SizedBox(width: 5), // Space between button and icon
+      GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => FingerprintAuthPopupScreen(),
+          ));
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [
+                Color.fromRGBO(255, 198, 48, 1),
+                Color.fromRGBO(255, 179, 57, 1),
+                Color.fromRGBO(254, 150, 68, 1),
+                Color.fromRGBO(255, 126, 79, 1),
+                Color.fromRGBO(255, 116, 83, 1),
+                Color.fromRGBO(255, 93, 93, 1),
+              ],
+            ),
+          ),
+          padding: EdgeInsets.all(8),
+          child: Icon(
+            Icons.fingerprint,
+            size: 30,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+
   Widget _buildTextField({
     required String labelText,
     required IconData prefixIcon,
@@ -125,42 +172,175 @@ class _FingerprintAuthScreenState extends State<FingerprintAuthScreen> {
       ),
     );
   }
+}
+class FingerprintAuthPopupScreen extends StatelessWidget {
+  final LocalAuthentication auth = LocalAuthentication();
 
-  // Helper method to build the login button
-  Widget _buildLoginButton() {
-    return ElevatedButton(
-      onPressed: () {},
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 100, vertical: 15),
-        backgroundColor: Colors.orangeAccent, // Updated property name
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-      child: Text(
-        'Login',
-        style: TextStyle(color: Colors.white, fontSize: 18),
-      ),
-    );
+  Future<void> _authenticateWithFingerprint(BuildContext context) async {
+    try {
+      List<BiometricType> availableBiometrics = await auth.getAvailableBiometrics();
+
+      if (availableBiometrics.isNotEmpty) {
+        bool authenticated = await auth.authenticate(
+          localizedReason: 'Scan your fingerprint to authenticate',
+          options: const AuthenticationOptions(
+            useErrorDialogs: true,
+            stickyAuth: true,
+          ),
+        );
+
+        if (authenticated) {
+          Navigator.of(context).pushReplacement(MaterialPageRoute(
+            builder: (context) => SuccessfulAuthenticationScreen(),
+          ));
+        }
+      } else {
+        print('No biometrics available on this device.');
+      }
+    } catch (e) {
+      print('Error: $e');
+    }
   }
 
-  // Helper method to build the fingerprint icon
-  Widget _buildFingerprintIcon() {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [Colors.orangeAccent, Colors.redAccent],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop(); // Go back to the previous screen
+          },
         ),
+        // title: Text('Fingerprint Authentication'),
       ),
-      padding: EdgeInsets.all(15),
-      child: Icon(
-        Icons.fingerprint,
-        size: 50,
-        color: Colors.white,
+      backgroundColor: Colors.grey[900]?.withOpacity(0.8),
+      body: Center(
+        child: Container(
+          width: 300,
+          height: 350,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Fingerprint',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'Authentication',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 20),
+              GestureDetector(
+                onTap: () => _authenticateWithFingerprint(context),
+                child: ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return LinearGradient(
+                      colors: [
+                  Color.fromRGBO(255, 198, 48, 1),
+                  Color.fromRGBO(255, 179, 57, 1),
+                  Color.fromRGBO(254, 150, 68, 1),
+                  Color.fromRGBO(255, 126, 79, 1),
+                  Color.fromRGBO(255, 116, 83, 1),
+                  Color.fromRGBO(255, 93, 93, 1),
+                ],
+                    ).createShader(bounds);
+                  },
+                  child: Icon(
+                    Icons.fingerprint,
+                    size: 100,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
+
+
+class SuccessfulAuthenticationScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        // title: Text('Authenticated'),
+        backgroundColor: Colors.black,
+      ),
+      body: Center( // Center widget to align the container in the middle
+        child: SingleChildScrollView( // Added scrollable feature
+          child: Container(
+            width: 300,
+            decoration: BoxDecoration(
+              color: Colors.grey[850],
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromRGBO(255, 198, 48, 1),
+                  Color.fromRGBO(255, 179, 57, 1),
+                  Color.fromRGBO(254, 150, 68, 1),
+                  Color.fromRGBO(255, 126, 79, 1),
+                  Color.fromRGBO(255, 116, 83, 1),
+                  Color.fromRGBO(255, 93, 93, 1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            padding: EdgeInsets.all(20), // Added padding for better spacing
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // Minimize height to fit content
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  size: 80,
+                  color: Colors.white,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'You have successfully authenticated!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Welcome back!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[300],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
